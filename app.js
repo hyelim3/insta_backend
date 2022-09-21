@@ -5,6 +5,7 @@ import axios from "axios";
 import fileUpload from "express-fileupload";
 import path from "path";
 import fs from "fs";
+import { runInNewContext } from "vm";
 
 const __dirname = path.resolve();
 
@@ -411,6 +412,43 @@ app.delete("/delete", async (req, res) => {
   );
 
   res.json(updatedUsers);
+});
+
+//팔로우 기능
+app.get("/follow", async (req, res) => {
+  const { reqId, resId } = req.query;
+  // console.log(reqid);
+  // console.log(resid);
+
+  if (!reqId) {
+    res.status(404).json({
+      msg: "request id required",
+    });
+    return;
+  }
+
+  if (!resId) {
+    res.status(404).json({
+      msg: "resend id required",
+    });
+    return;
+  }
+
+  const [[follow]] = await pool.query(
+    `
+    select *
+    from insta
+    where follow = ?
+    and follower = ?
+    `,
+    [reqId, resId]
+  );
+
+  if (follow != undefined) {
+    res.json(true);
+  } else {
+    res.json(false);
+  }
 });
 
 app.listen(port, () => {
