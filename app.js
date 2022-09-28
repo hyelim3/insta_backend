@@ -321,8 +321,9 @@ app.get("/getFiles", async (req, res) => {
   res.json(imgSrcs);
 });
 
-app.get("/getFiles/:userid", async (req, res) => {
+app.post("/getFiles/:userid", async (req, res) => {
   const { userid } = req.params;
+  // console.log(userid);
   const [imgSrcs] = await pool.query(
     `
     SELECT * FROM img_table where userid = ?;
@@ -331,6 +332,7 @@ app.get("/getFiles/:userid", async (req, res) => {
   );
   res.json(imgSrcs);
 });
+
 //DB에 이미지 삽입
 app.post("/upload/:userid", async (req, res) => {
   const { userid } = req.params;
@@ -364,6 +366,30 @@ app.post("/upload/:userid", async (req, res) => {
   });
 });
 
+//프사 변경
+app.post("/profile/:userid", async (req, res) => {
+  const { userid } = req.params;
+  let uploadFile = req.files.img;
+  const fileName = req.files.img.name;
+  const name = Date.now() + "." + fileName;
+  uploadFile.mv(`${__dirname}/public/files/${name}`, async (err) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+
+    const imgSrc = `http://localhost:3002/files/${name}`;
+    await pool.query(
+      `
+      update insta
+      SET imgSrc = ?
+      where userid = ?
+      `,
+      [imgSrc, userid]
+    );
+
+    res.send(imgSrc); //주소를 받아서 바로 사용하기 위해, 리렌더링 등등
+  });
+});
 app.delete("/delete", async (req, res) => {
   const { id, userid } = req.query;
   // console.log("id:", id);
@@ -449,6 +475,44 @@ app.get("/follow", async (req, res) => {
   } else {
     res.json(false);
   }
+});
+
+//프로필 수정 업데이트
+app.patch("/updateProfile/:userid", async (req, res) => {
+  const { userid } = req.params;
+  const { usename, introduce } = req.body;
+
+  const [userRow] = await pool.query(
+    `
+    select *
+    from insta
+    where userid = ?
+    `,
+    [userid]
+  );
+  if (userRow == undefined) {
+    res.status(404).json({
+      msg: "not found",
+    });
+  }
+  const [rs] = await pool.query(
+    `
+    update insta
+    set usename = ?,
+    introduce = ?
+    where userid = ?
+    `,
+    [usename, introduce, userid]
+  );
+  const [[updatedUsers]] = await pool.query(
+    `
+    select *
+    from insta
+    where userid = ?
+    `,
+    [userid]
+  );
+  res.json(updatedUsers);
 });
 
 app.listen(port, () => {
