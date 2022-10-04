@@ -443,8 +443,8 @@ app.delete("/delete", async (req, res) => {
 //팔로우 기능
 app.get("/follow", async (req, res) => {
   const { reqId, resId } = req.query;
-  // console.log(reqid);
-  // console.log(resid);
+  // console.log(reqId);
+  // console.log(resId);
 
   if (!reqId) {
     res.status(404).json({
@@ -463,18 +463,53 @@ app.get("/follow", async (req, res) => {
   const [[follow]] = await pool.query(
     `
     select *
-    from insta
-    where follow = ?
-    and follower = ?
+    from follow_table
+    where followId = ?
+    and followedId = ?
     `,
     [reqId, resId]
   );
 
+  //true면 팔로우 중  팔로우 취소 -1
   if (follow != undefined) {
-    res.json(true);
-  } else {
+    await pool.query(
+      `
+      update insta
+      set follow = follow - 1
+      where userid = ?
+      `,
+      [reqId]
+    );
+    await pool.query(
+      `
+      update insta
+      set follower = follower - 1
+      where userid = ?
+      `,
+      [resId]
+    );
     res.json(false);
+  } else if (follow == undefined) {
+    await pool.query(
+      `
+      update insta
+      set follow = follow + 1
+      where userid = ?
+      `,
+      [reqId]
+    );
+    await pool.query(
+      `
+      update insta
+      set follower = follower + 1
+      where userid = ?
+      `,
+      [resId]
+    );
+    res.json(true);
   }
+
+  //false면 팔로우 해야함 +1
 });
 
 //프로필 수정 업데이트
