@@ -529,6 +529,40 @@ app.get("/follow", async (req, res) => {
   }
 });
 
+app.get("/followed", async (req, res) => {
+  const { reqId, resId } = req.query;
+
+  if (!reqId) {
+    res.status(404).json({
+      msg: "request id required",
+    });
+    return;
+  }
+
+  if (!resId) {
+    res.status(404).json({
+      msg: "resend id required",
+    });
+    return;
+  }
+
+  const [[followed]] = await pool.query(
+    `
+    SELECT * FROM follow_table WHERE
+     followId = ? 
+     AND followedId = ?
+    `,
+    [reqId, resId]
+  );
+  console.log("followed", followed);
+
+  if (followed != undefined) {
+    res.json(false);
+  } else {
+    res.json(true);
+  }
+});
+
 //프로필 수정 업데이트
 app.patch("/updateProfile/:userid", async (req, res) => {
   const { userid } = req.params;
