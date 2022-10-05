@@ -471,6 +471,7 @@ app.get("/follow", async (req, res) => {
   );
 
   //true면 팔로우 중  팔로우 취소 -1
+  //false면 팔로우 해야함 +1
   if (follow != undefined) {
     await pool.query(
       `
@@ -489,6 +490,15 @@ app.get("/follow", async (req, res) => {
       [resId]
     );
     res.json(false);
+
+    await pool.query(
+      `
+      delete from follow_table
+      where followId = ? and
+      followedId = ?
+      `,
+      [reqId, resId]
+    );
   } else if (follow == undefined) {
     await pool.query(
       `
@@ -507,9 +517,16 @@ app.get("/follow", async (req, res) => {
       [resId]
     );
     res.json(true);
-  }
 
-  //false면 팔로우 해야함 +1
+    await pool.query(
+      `
+      insert into follow_table
+      set followId = ?, 
+      followedId = ?
+      `,
+      [reqId, resId]
+    );
+  }
 });
 
 //프로필 수정 업데이트
