@@ -440,7 +440,7 @@ app.delete("/delete", async (req, res) => {
   res.json(updatedUsers);
 });
 
-//팔로우 기능
+//팔로우 기능(버튼 팔로우 중이면 끊고 팔로우가 아니면 추가)
 app.get("/follow", async (req, res) => {
   const { reqId, resId } = req.query;
   // console.log(reqId);
@@ -470,8 +470,8 @@ app.get("/follow", async (req, res) => {
     [reqId, resId]
   );
 
-  //true면 팔로우 중  팔로우 취소 -1
-  //false면 팔로우 해야함 +1
+  //false면 팔로우 중  팔로우 취소 -1
+  //true면 팔로우 해야함 +1
   if (follow != undefined) {
     await pool.query(
       `
@@ -489,7 +489,6 @@ app.get("/follow", async (req, res) => {
       `,
       [resId]
     );
-    res.json(false);
 
     await pool.query(
       `
@@ -499,6 +498,7 @@ app.get("/follow", async (req, res) => {
       `,
       [reqId, resId]
     );
+    res.json(false);
   } else if (follow == undefined) {
     await pool.query(
       `
@@ -516,7 +516,6 @@ app.get("/follow", async (req, res) => {
       `,
       [resId]
     );
-    res.json(true);
 
     await pool.query(
       `
@@ -526,9 +525,11 @@ app.get("/follow", async (req, res) => {
       `,
       [reqId, resId]
     );
+    res.json(true);
   }
 });
 
+//팔로우 기능 상태체크
 app.get("/followed", async (req, res) => {
   const { reqId, resId } = req.query;
 
@@ -554,12 +555,11 @@ app.get("/followed", async (req, res) => {
     `,
     [reqId, resId]
   );
-  console.log("followed", followed);
 
   if (followed != undefined) {
-    res.json(false);
-  } else {
     res.json(true);
+  } else {
+    res.json(false);
   }
 });
 
