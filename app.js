@@ -381,7 +381,7 @@ app.post("/profile/:userid", async (req, res) => {
     await pool.query(
       `
       update insta
-      SET imgSrc = ?
+      SET userimgSrc = ?
       where userid = ?
       `,
       [imgSrc, userid]
@@ -599,6 +599,28 @@ app.patch("/updateProfile/:userid", async (req, res) => {
     [userid]
   );
   res.json(updatedUsers);
+});
+
+//팔로우한 사람 명단 받기
+app.get("/getfollowMem/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const [users] = await pool.query(
+    `
+    select *
+    from insta a
+    inner join follow_table b 
+    on a.userid = b.followedId
+    where b.followId = ?
+    `,
+    [id]
+  );
+
+  if (users.length == 0) {
+    res.json(false);
+    return;
+  }
+  res.json(users);
 });
 
 app.listen(port, () => {
