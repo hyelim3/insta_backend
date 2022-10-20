@@ -365,7 +365,20 @@ app.post("/upload/:userid", async (req, res) => {
     res.send(imgSrc); //주소를 받아서 바로 사용하기 위해, 리렌더링 등등
   });
 });
+//DB 이미지 조회
+app.get("/getImage/:id", async (req, res) => {
+  const { id } = req.params;
 
+  const [[image]] = await pool.query(
+    `
+    select * from img_table 
+    where id = ?
+    `,
+    [id]
+  );
+
+  res.json(image);
+});
 //프사 변경
 app.post("/profile/:userid", async (req, res) => {
   const { userid } = req.params;
@@ -621,6 +634,28 @@ app.get("/getfollowMem/:id", async (req, res) => {
     return;
   }
   res.json(users);
+});
+
+app.get("/getArticle/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const [articles] = await pool.query(
+    `
+    select *
+    from insta a
+    inner join follow_table b
+    on a.userid = b.followedId
+    inner join img_table c
+    on a.userid = c.userid
+    where b.followId = ?
+    `,
+    [id]
+  );
+  if (articles.length == 0) {
+    res.json(false);
+    return;
+  }
+  res.json(articles);
 });
 
 app.listen(port, () => {
