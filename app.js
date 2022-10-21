@@ -658,6 +658,38 @@ app.get("/getArticle/:id", async (req, res) => {
   res.json(articles);
 });
 
+//인스타 사진정으로 유저확인
+app.get("/getUser/:id", async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    res.status(404).json({
+      msg: "id required",
+    });
+    return;
+  }
+
+  const [[userid]] = await pool.query(
+    `
+    select userid
+    from img_table
+    where id = ? 
+    `,
+    [id]
+  );
+
+  const [[user]] = await pool.query(
+    `
+    select *
+    from insta
+    where userid = ?
+    `,
+    [userid.userid]
+  );
+
+  res.json(user);
+});
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
