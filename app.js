@@ -20,7 +20,7 @@ const port = 3002;
 const pool = mysql.createPool({
   host: "localhost",
   user: "sbsst",
-  // password: "sbs123414",
+  password: "sbs123414",
   database: "a9",
   waitForConnections: true,
   connectionLimit: 10,
@@ -688,6 +688,104 @@ app.get("/getUser/:id", async (req, res) => {
   );
 
   res.json(user);
+});
+
+//인스타 좋아요 -> 상대방의 게시글 사진, 좋아요한 아이디, 내 아이디
+app.post("/Like", async (req, res) => {
+  const { id, userid, imgSrc } = req.query;
+
+  const [isLiked] = await pool.query(
+    `
+    select *
+    from like_table
+    where articleid = ?
+    and Likeid = ?
+    `,
+    [id, userid]
+  );
+
+  if (isLiked == "") {
+    await pool.query(
+      `
+      update like_table 
+      set Likeid = ?,
+      LikeUserimgSrc = ?,
+      Liked = 1
+      where articleid = ?
+      `,
+      [userid, imgSrc, id]
+    );
+    await pool.query(
+      `
+      update img_table
+      set imgLike = imgLike + 1
+      where id = ?
+      `,
+      [id]
+    );
+    res.json({
+      msg: "좋아요 성공",
+    });
+  } else if (isLiked != "") {
+    await pool.query(
+      `
+    update img_table
+    set imgLike = imgLike - 1 
+    where id = ?
+    `,
+      [id]
+    );
+    await pool.query(
+      `
+    update like_table
+    set Likeid = "",
+    LikeUserimgSrc = "",
+    Liked = 0
+    where articleid = ?
+    and Likeid = ?
+    `,
+      [id, userid]
+    );
+
+    res.json({
+      msg: "좋아요 취소",
+    });
+  }
+});
+
+// 좋아요 체크
+app.get("/isLiked", async (req, res) => {
+  const { userid, id } = req.query;
+
+  if (!userid) {
+    res.status(404).json({
+      msg: "로그인이 필요한 기능입니다.",
+    });
+    return;
+  }
+
+  if (!id) {
+    res.status(404).json({
+      msg: "article id required",
+    });
+    return;
+  }
+
+  const [[isLiked]] = await pool.query(
+    `
+  SELECT * 
+  FROM like_table 
+  WHERE Likeid = ? 
+   AND articleid = ?
+  `,
+    [userid, id]
+  );
+
+  if (isLiked != undefined) {
+    res.json(true);
+  } else {
+    res.json(false);
+  }
 });
 
 app.listen(port, () => {
