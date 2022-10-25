@@ -20,7 +20,7 @@ const port = 3002;
 const pool = mysql.createPool({
   host: "localhost",
   user: "sbsst",
-  password: "sbs123414",
+  // password: "sbs123414",
   database: "a9",
   waitForConnections: true,
   connectionLimit: 10,
@@ -353,6 +353,14 @@ app.post("/upload/:userid", async (req, res) => {
       [imgSrc, userid]
     );
 
+    const [[imgid]] = await pool.query(
+      `
+      select id
+      from img_table
+      order by id desc `
+    );
+
+    console.log(imgid);
     await pool.query(
       `
       update insta
@@ -360,6 +368,15 @@ app.post("/upload/:userid", async (req, res) => {
       where userid = ?
       `,
       [userid]
+    );
+
+    await pool.query(
+      `
+      insert into Like_table
+      set articleid = ?,
+      Liked = 0
+      `,
+      [imgid.id]
     );
 
     res.send(imgSrc); //주소를 받아서 바로 사용하기 위해, 리렌더링 등등
@@ -647,7 +664,10 @@ app.get("/getArticle/:id", async (req, res) => {
     on a.userid = b.followedId
     inner join img_table c
     on a.userid = c.userid
+    inner join Like_table d
+    on c.id = d.articleid
     where b.followId = ?
+    group by c.id
     `,
     [id]
   );
@@ -692,12 +712,14 @@ app.get("/getUser/:id", async (req, res) => {
 
 //인스타 좋아요 -> 상대방의 게시글 사진, 좋아요한 아이디, 내 아이디
 app.post("/Like", async (req, res) => {
-  const { id, userid, imgSrc } = req.query;
-
+  const { id, userid, userimgSrc } = req.query;
+  // console.log("id:", id);
+  // console.log("userid:", userid);
+  // console.log("userimgSrc:", userimgSrc);
   const [isLiked] = await pool.query(
     `
     select *
-    from like_table
+    from Like_table
     where articleid = ?
     and Likeid = ?
     `,
@@ -707,13 +729,13 @@ app.post("/Like", async (req, res) => {
   if (isLiked == "") {
     await pool.query(
       `
-      update like_table 
+      update Like_table 
       set Likeid = ?,
       LikeUserimgSrc = ?,
       Liked = 1
       where articleid = ?
       `,
-      [userid, imgSrc, id]
+      [userid, userimgSrc, id]
     );
     await pool.query(
       `
@@ -726,7 +748,7 @@ app.post("/Like", async (req, res) => {
     res.json({
       msg: "좋아요 성공",
     });
-  } else if (isLiked != "") {
+  } else {
     await pool.query(
       `
     update img_table
@@ -737,7 +759,7 @@ app.post("/Like", async (req, res) => {
     );
     await pool.query(
       `
-    update like_table
+    update Like_table
     set Likeid = "",
     LikeUserimgSrc = "",
     Liked = 0
@@ -774,7 +796,7 @@ app.get("/isLiked", async (req, res) => {
   const [[isLiked]] = await pool.query(
     `
   SELECT * 
-  FROM like_table 
+  FROM Like_table 
   WHERE Likeid = ? 
    AND articleid = ?
   `,
@@ -786,6 +808,17 @@ app.get("/isLiked", async (req, res) => {
   } else {
     res.json(false);
   }
+});
+
+//인스타 댓글 추가
+app.post("/replyplus", async (req, res) => {
+  const { id, userid } = req.query;
+
+  const [reply] = await pool.query(
+    `
+    select 
+    `
+  );
 });
 
 app.listen(port, () => {
